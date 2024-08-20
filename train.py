@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '7,6,5,4,3,2,1,0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 import time
 import math
 import pickle
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     logging.info('model start')
 
-    batch_size = 128
+    batch_size = 2
     epoch = 1
     LR_INIT = 5e-5
 
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         pin_memory=True,
         drop_last=False,
         shuffle=True,        
-        num_workers=16
+        num_workers=0
     )
 
 
@@ -107,3 +107,4 @@ if __name__ == "__main__":
         train_epoch(epoch)
 
         model.eval()
+        #
