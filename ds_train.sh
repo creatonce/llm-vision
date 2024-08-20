@@ -1,0 +1,1 @@
+deepspeed --master_port=12345 --num_gpus=8 ds_train.py --deepspeed_config ./config/ds_config.json
