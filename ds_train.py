@@ -58,11 +58,17 @@ def train_epoch(epoch):
 
 
         if (args.local_rank == 0):
-            writer.add_scalar("loss_lr/ce_loss", loss, global_step=epoch*batch_size + step)
-            logging.info(f"step:{step} loss:{loss}")
+            global_step=epoch*batch_size + step
+            writer.add_scalar("loss_lr/ce_loss", loss, global_step=global_step)
+            logging.info(f"step:{global_step} loss:{loss}")
     
     if (args.local_rank == 0):
-        torch.save("./checkpoints/model_{}_{}.pth".format(epoch, step))
+
+        checkpoint = {"model_state_dict": model.module.state_dict(), \
+                                "optimizer_state_dict": optimizer.state_dict(), \
+                                "epoch": epoch}
+
+        torch.save(checkpoint, "./checkpoints/model_{}_{}.pth".format(epoch, step))
 
 
 def add_argument():
@@ -81,7 +87,7 @@ if __name__ == "__main__":
     logging.info('model start')
 
     batch_size = 96
-    epoch = 1
+    epoch = 2
     LR_INIT = 5e-5
 
     dim = 512
