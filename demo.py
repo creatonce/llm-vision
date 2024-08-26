@@ -29,7 +29,7 @@ def init_model():
     gptconf = ModelArgs(**model_args)
     model = Transformer(gptconf)
 
-    model.load_state_dict(torch.load("/mnt/data-nas/cy/llama-study/cy_llama/llama-vit/checkpoints/1/model_sft_1_200.pth", map_location="cpu")['model_state_dict'])
+    model.load_state_dict(torch.load("/mnt/data-nas/cy/llama-study/cy_llama/llama-vit/checkpoints/model_sft_9.pth", map_location="cpu")['model_state_dict'])
     tokenizer=ChatGLMTokenizer(vocab_file='./chatglm_tokenizer/tokenizer.model')
     return model, tokenizer
 
@@ -55,10 +55,10 @@ demo = gr.Interface(
     fn=generate_text, 
     inputs="text", 
     outputs="text", 
-    title="CY GPT",
+    title="CY-GPT",
     description="文本语言模型"
 )
 
 # 启动Gradio应用
 if __name__ == "__main__":
-    demo.launch(server_port=8881)
+    demo.launch(server_name='10.100.15.190', server_port=8881)
