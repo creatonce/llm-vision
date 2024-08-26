@@ -134,6 +134,5 @@ if __name__ == "__main__":
     for i in range(epoch):
         model.train()
         scheduler.step()
-        train_epoch(epoch)
-
+        train_epoch(i)
         # model.eval()

@@ -99,4 +99,4 @@ if __name__ == "__main__":
 
     for i in range(epoch):
         model.train()
-        train_epoch(epoch)
+        train_epoch(i)
