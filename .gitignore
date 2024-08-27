@@ -3,3 +3,4 @@ checkpoints/
 logs/
 app.log
 app_test.log
+*.pth

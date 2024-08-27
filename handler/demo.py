@@ -1,25 +1,23 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '7,6,5,4,3,2,1,0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 import math
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 from tqdm import tqdm
 import re
 import csv
-# import timm
 import logging
 import requests
 from io import BytesIO
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+import gradio as gr
 import torch
 from torchvision import transforms
 from torch import nn
-import torch.optim as optim
-from torch.optim.lr_scheduler import CosineAnnealingLR
 import torch.nn.functional as F
 import torchvision.models as models
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from chatglm_tokenizer.tokenization_chatglm import ChatGLMTokenizer
 
 
@@ -27,7 +25,6 @@ logging.basicConfig(filename='app_test.log',
                     filemode='w',  # 覆盖写入 'a' 表示追加写入
                     level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 @dataclass
 class ModelArgs:
@@ -300,7 +297,7 @@ def init_model():
     gptconf = ModelArgs(**model_args)
     model = Transformer(gptconf)
 
-    model.load_state_dict(torch.load("/mnt/data-nas/cy/code/study/baby-llama2-chinese/out/pretrain/epoch_0.pth", map_location="cpu"))
+    # model.load_state_dict(torch.load("/mnt/data-nas/cy/code/study/baby-llama2-chinese/out/pretrain/epoch_0.pth", map_location="cpu"))
     return model
 
 
@@ -310,7 +307,7 @@ class generate_clip(nn.Module):
 
         self.llm = init_model()
         # self.visual = timm.create_model("resnet50", pretrained=True)
-        self.visual = models.resnet50(pretrained=True)
+        self.visual = models.resnet50(pretrained=False)
         self.visual.fc = nn.Linear(2048, 512)
 
 
@@ -361,18 +358,18 @@ class get_data(Dataset):
 
 
     def convert_to_internal_url(self, url):
-        # '''
-        # 外网地址转换为内网，下载成功率和下载时间上均有改善，
-        # 其中,下载时间由0.0825下降至0.0242
-        # '''
-        url = url.replace("china-chat-img.soulapp.cn", "soul-chat.oss-cn-hangzhou-internal.aliyuncs.com")
-        url = url.replace("china-img.soulapp.cn", "soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
-        url = url.replace("img.soulapp.cn", "soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
-        url = url.replace("soul-app.oss-cn-hangzhou.aliyuncs.com","soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
-        url = url.replace("bratro.soulapp.cn/app", "soul-audit.oss-cn-hangzhou-internal.aliyuncs.com")
-        if ("oss-cn-hangzhou-internal.aliyuncs.com" in url):
-            url = url.replace("https", "http")
-        return url
+            # '''
+            # 外网地址转换为内网，下载成功率和下载时间上均有改善，
+            # 其中,下载时间由0.0825下降至0.0242
+            # '''
+            url = url.replace("china-chat-img.soulapp.cn", "soul-chat.oss-cn-hangzhou-internal.aliyuncs.com")
+            url = url.replace("china-img.soulapp.cn", "soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
+            url = url.replace("img.soulapp.cn", "soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
+            url = url.replace("soul-app.oss-cn-hangzhou.aliyuncs.com","soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
+            url = url.replace("bratro.soulapp.cn/app", "soul-audit.oss-cn-hangzhou-internal.aliyuncs.com")
+            if ("oss-cn-hangzhou-internal.aliyuncs.com" in url):
+                url = url.replace("https", "http")
+            return url
 
 
     def __len__(self):
@@ -411,71 +408,91 @@ class get_data(Dataset):
         text = torch.stack(text, dim=0)
         image = torch.stack(image, dim=0)
         return text, image
-
-
-def info_nce(text_features, image_features, temperature=0.07):
-    # 对特征进行L2归一化
-    text_features = F.normalize(text_features, dim=-1)
-    image_features = F.normalize(image_features, dim=-1)
-    # 计算正样本对的相似度
-    # pos_sim = torch.sum(text_features * image_features, dim=-1)
-    # 计算所有样本间的相似度
-    all_sim = torch.matmul(text_features, image_features.T)
-    # 创建用于计算NCE损失的logits
-    logits = all_sim / temperature
-    # 创建labels (正样本对在对角线上)
-    labels = torch.arange(logits.shape[0]).to(logits.device)
-    # 计算NCE损失
-    loss = F.cross_entropy(logits, labels)
-    return loss
-
-
-def train_epoch(epoch):
-
-    for step, (text, image) in enumerate(train_dataloader):
-
-        optimizer.zero_grad()
-
-        text_emb, image_emb = model(text.cuda(), image.cuda())
-        loss = info_nce(text_emb, image_emb)
-
-        loss.backward()
-        optimizer.step()
-
-        global_step=epoch*batch_size + step
-        logging.info(f"step:{global_step} loss:{loss}")
     
 
-    checkpoint = {"model_state_dict": model.module.state_dict(), \
-                            "optimizer_state_dict": optimizer.state_dict(), \
-                            "epoch": epoch}
-    torch.save(checkpoint, "./checkpoints/model_{}_{}.pth".format(epoch, step))
+def convert_to_internal_url(url):
+    # '''
+    # 外网地址转换为内网，下载成功率和下载时间上均有改善，
+    # 其中,下载时间由0.0825下降至0.0242
+    # '''
+    url = url.replace("china-chat-img.soulapp.cn", "soul-chat.oss-cn-hangzhou-internal.aliyuncs.com")
+    url = url.replace("china-img.soulapp.cn", "soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
+    url = url.replace("img.soulapp.cn", "soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
+    url = url.replace("soul-app.oss-cn-hangzhou.aliyuncs.com","soul-app.oss-cn-hangzhou-internal.aliyuncs.com")
+    url = url.replace("bratro.soulapp.cn/app", "soul-audit.oss-cn-hangzhou-internal.aliyuncs.com")
+    if ("oss-cn-hangzhou-internal.aliyuncs.com" in url):
+        url = url.replace("https", "http")
+    return url
 
 
+resize = 256
+resolution = 224
+
+data_transforms = {
+        'train': transforms.Compose([
+            transforms.Resize(resize),
+            transforms.RandomResizedCrop(resolution),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+        'val': transforms.Compose([
+            transforms.Resize(resolution),
+            transforms.CenterCrop((resolution,resolution)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+    }
+
+
+max_text_length = 512
+tokenizer = ChatGLMTokenizer(vocab_file='./chatglm_tokenizer/tokenizer.model')
+model = generate_clip()
+model.load_state_dict(torch.load("/mnt/data-nas/cy/llama-study/cy_llama/llama-vit/checkpoints/model_9_342.pth", map_location='cpu')['model_state_dict'])
+model = model.cuda()
+
+
+def infer(text, image_path):
+
+    pattern = r'(\[.*?\]|<innerTag>.*?</innerTag>)'
+    text = re.sub(pattern, '', text)
+    text_id = tokenizer.encode(text,add_special_tokens=False)[:max_text_length]
+    text_id = text_id + (max_text_length-len(text_id)) * [(tokenizer.special_tokens['<eos>'])]
+    text_id = torch.LongTensor(text_id).unsqueeze(0)
+
+
+    response = requests.get(convert_to_internal_url(image_path))
+    RGB_image = Image.open(BytesIO(response.content)).convert('RGB')
+    image = data_transforms["val"](RGB_image).unsqueeze(0)
+
+
+    model.eval()
+
+    with torch.no_grad():
+        text_emb, image_emb = model(text_id.cuda(), image.cuda())
+        
+        normalized_tensor_1 = text_emb / text_emb.norm(dim=-1, keepdim=True)
+        normalized_tensor_2 = image_emb / image_emb.norm(dim=-1, keepdim=True)
+        cos_sim = (normalized_tensor_1 * normalized_tensor_2).sum(dim=-1)
+
+        return cos_sim, RGB_image
+
+
+
+demo = gr.Interface(
+    fn=infer, 
+    inputs=[
+        gr.components.Textbox(label="Text Input"),
+        gr.components.Textbox(label="Image Input"),
+    ],
+    outputs=[
+        gr.components.Textbox(label="Cos Sim"),
+        gr.components.Image(label="Image Display")
+    ],
+    title="Text-Image"
+)
+
+
+# 启动Gradio应用
 if __name__ == "__main__":
-
-    LR_INIT = 5e-5
-    batch_size = 1024
-    num_workers = 8
-    epochs = 100
-
-    model = generate_clip()
-    model = nn.DataParallel(model).cuda()
-    optimizer = optim.AdamW(model.parameters(), lr=LR_INIT, betas=(0.9, 0.98), eps=1.0e-6)
-    scheduler = CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-6)
-
-    # 训练集
-    train_dataset = get_data(split="train")
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size = batch_size,
-        shuffle=True,
-        num_workers = num_workers,
-        collate_fn=get_data.collate_fn,
-        drop_last=True
-    )
-
-    for epoch in range(epochs):
-        model.train()
-        train_epoch(epoch)
-        scheduler.step()
+    demo.launch(server_name='10.100.15.190', server_port=8882)
