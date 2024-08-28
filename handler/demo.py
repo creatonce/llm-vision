@@ -448,7 +448,7 @@ data_transforms = {
 max_text_length = 512
 tokenizer = ChatGLMTokenizer(vocab_file='./chatglm_tokenizer/tokenizer.model')
 model = generate_clip()
-model.load_state_dict(torch.load("/mnt/data-nas/cy/llama-study/cy_llama/llama-vit/checkpoints/model_9_342.pth", map_location='cpu')['model_state_dict'])
+model.load_state_dict(torch.load("/mnt/data-nas/cy/llama-study/cy_llama/llama-vit/checkpoints/model_99_342.pth", map_location='cpu')['model_state_dict'])
 model = model.cuda()
 
 
@@ -473,7 +473,7 @@ def infer(text, image_path):
         
         normalized_tensor_1 = text_emb / text_emb.norm(dim=-1, keepdim=True)
         normalized_tensor_2 = image_emb / image_emb.norm(dim=-1, keepdim=True)
-        cos_sim = (normalized_tensor_1 * normalized_tensor_2).sum(dim=-1)
+        cos_sim = (normalized_tensor_1 * normalized_tensor_2).sum(dim=-1).item()
 
         return cos_sim, RGB_image
 
@@ -495,4 +495,4 @@ demo = gr.Interface(
 
 # 启动Gradio应用
 if __name__ == "__main__":
-    demo.launch(server_name='10.100.15.190', server_port=8882)
+    demo.launch(server_name='10.100.15.190', server_port=8883)
